@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateForecastDto } from './dto/create-forecast.dto';
 import { UpdateForecastDto } from './dto/update-forecast.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,18 +9,25 @@ import { SaleHistory } from 'src/sale-history/entities/sale-history.entity';
 
 @Injectable()
 export class ForecastService {
-
   constructor(
-    @InjectRepository(Forecast) private readonly forecastRepository: Repository<Forecast>,
-    @InjectRepository(Product) private readonly productRepository: Repository<Product>,
-    @InjectRepository(SaleHistory) private readonly salehistoryRepository: Repository<SaleHistory>,
-  ) { }
+    @InjectRepository(Forecast)
+    private readonly forecastRepository: Repository<Forecast>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+    @InjectRepository(SaleHistory)
+    private readonly salehistoryRepository: Repository<SaleHistory>,
+  ) {}
 
   async create(createForecastDto: CreateForecastDto) {
-
     const sale = await this.salehistoryRepository.findOne({
-      where: { id: +createForecastDto.sale }
+      where: { id: +createForecastDto.sale },
     });
+    if (!sale) throw new NotFoundException('Такой закупки нет!');
+
+    const product = await this.productRepository.findOne({
+      where: { id: +createForecastDto.product },
+    });
+    if (!product) throw new NotFoundException('Такого продукта нет!');
 
     // Создаем копии исходной даты перед изменением
     const saleDate = new Date(createForecastDto.date);
@@ -32,42 +39,52 @@ export class ForecastService {
     const endOfYesterday = new Date(yesterday);
     endOfYesterday.setHours(23, 59, 59, 999);
 
-    console.log(endOfYesterday);
+    console.log('endOfYesterday = ', endOfYesterday);
+    console.log('yesterday = ', yesterday);
 
     // Используем диапазон дат для поиска
     const saleAmountYesterday = await this.salehistoryRepository.findOne({
       where: {
-        date: Between(yesterday, endOfYesterday)
-      }
+        date: Between(yesterday, endOfYesterday),
+      },
     });
 
     const forecast = await this.forecastRepository.findOne({
-      where: { date: Between(yesterday, endOfYesterday) }
-    })
+      where: { date: Between(yesterday, endOfYesterday) },
+    });
     let forecastRes = null;
     if (!forecast) {
-      forecastRes = saleAmountYesterday.sale_amount
+      forecastRes = saleAmountYesterday?.sale_amount;
     } else {
-      forecastRes = forecast.forecast_amount
+      forecastRes = forecast.forecast_amount;
     }
 
-    console.log(forecast);
+    console.log('forecast = ', forecast);
+    console.log('saleAmounYesterday = ', saleAmountYesterday);
 
-    console.log(saleAmountYesterday ? saleAmountYesterday.sale_amount : 'No data for yesterday');
+    console.log(
+      saleAmountYesterday
+        ? saleAmountYesterday.sale_amount
+        : 'No data for yesterday',
+    );
 
     const res = 0.5 * saleAmountYesterday.sale_amount + (1 - 0.5) * forecastRes;
+    console.log('res', res);
+
     const newForecast = {
       date: createForecastDto.date,
       forecast_amount: res,
       product: createForecastDto.product,
-      sale: createForecastDto.sale
-    }
+      sale: createForecastDto.sale,
+    };
     // return res;
     return await this.forecastRepository.save(newForecast);
   }
 
   async findAll() {
-    const forecast = await this.forecastRepository.find();
+    const forecast = await this.forecastRepository.find({
+      relations: { product: true, sale: true },
+    });
     return forecast;
   }
 
@@ -79,7 +96,11 @@ export class ForecastService {
     return `This action updates a #${id} forecast`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} forecast`;
+  async remove(id: number) {
+    const forecast = await this.forecastRepository.findOne({
+      where: { id: id },
+    });
+    if (!forecast) throw new NotFoundException('Такой прогноз не существует!');
+    return await this.forecastRepository.delete(id);
   }
 }

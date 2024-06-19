@@ -1,4 +1,6 @@
-import { IsDateString, IsNumber } from 'class-validator';
+import { IsDateString, IsNumber, IsOptional } from 'class-validator';
+import { Forecast } from 'src/forecast/entities/forecast.entity';
+import { Product } from 'src/product/entities/product.entity';
 
 export class CreateSaleHistoryDto {
     @IsDateString()
@@ -6,4 +8,10 @@ export class CreateSaleHistoryDto {
 
     @IsNumber()
     sale_amount: number;
+
+    @IsOptional()
+    product: Product
+
+    @IsOptional()
+    forecast: Forecast
 }
