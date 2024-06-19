@@ -28,7 +28,7 @@ export class UserService {
     const user = await this.userRepository.find({
     });
     if(!user) throw new NotFoundException('Такого пользователя нет!')
-    return `This action returns all user`;
+    return user;
   }
 
   findOne(id: number) {

@@ -13,7 +13,6 @@ export class Forecast {
     @Column()
     forecast_amount: number
 
-
     // relation
     @ManyToOne(() => Product, (product) => product.forecast, {onDelete: "CASCADE"})
     @JoinColumn({name: "product_id"})
