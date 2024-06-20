@@ -43,7 +43,7 @@ export class ForecastService {
     console.log('yesterday = ', yesterday);
 
     // Используем диапазон дат для поиска
-    const saleAmountYesterday = await this.salehistoryRepository.findOne({
+    const saleAmountYesterday = await this.salehistoryRepository.find({
       where: {
         date: Between(yesterday, endOfYesterday),
       },
@@ -53,8 +53,14 @@ export class ForecastService {
       where: { date: Between(yesterday, endOfYesterday) },
     });
     let forecastRes = null;
+    let totalAmount = null;
+    totalAmount = saleAmountYesterday.reduce((accumulator, currentValue) => {
+      return accumulator + currentValue.sale_amount;
+    }, 0);
+
+    console.log('totalAmount', totalAmount); // Output: 3
     if (!forecast) {
-      forecastRes = saleAmountYesterday?.sale_amount;
+      forecastRes = totalAmount;
     } else {
       forecastRes = forecast.forecast_amount;
     }
@@ -62,13 +68,9 @@ export class ForecastService {
     console.log('forecast = ', forecast);
     console.log('saleAmounYesterday = ', saleAmountYesterday);
 
-    console.log(
-      saleAmountYesterday
-        ? saleAmountYesterday.sale_amount
-        : 'No data for yesterday',
-    );
+    console.log(saleAmountYesterday ? totalAmount : 'No data for yesterday');
 
-    const res = 0.5 * saleAmountYesterday.sale_amount + (1 - 0.5) * forecastRes;
+    const res = 0.5 * totalAmount + (1 - 0.5) * forecastRes;
     console.log('res', res);
 
     const newForecast = {
