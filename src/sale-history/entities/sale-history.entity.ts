@@ -18,6 +18,6 @@ export class SaleHistory {
     @JoinColumn({name: 'product_id'})
     product: Product
 
-    @OneToOne(() => Forecast, (forecast) => forecast.sale)
+    @OneToOne(() => Forecast, (forecast) => forecast.sale, {cascade: true})
     forecast: Forecast
 }
