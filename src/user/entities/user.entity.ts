@@ -11,9 +11,8 @@ export class User {
     @Column()
     password: string
 
-    @Column({default: 'user'})
+    @Column({default: 'cashier'}) // manager
     role: string
-
 
     // relation
 }
